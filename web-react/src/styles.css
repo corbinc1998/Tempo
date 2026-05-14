@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+/*
+ * Tailwind v4 uses @import "tailwindcss" instead of the v3 @tailwind directives.
+ * Theme tokens (colors, fonts, etc) are configured in this file via @theme.
+ * See https://tailwindcss.com/docs/installation for the current setup.
+ */
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+}

@@ -1,0 +1,41 @@
+# Local development stack.
+#
+# Brings up Postgres on :5432 with credentials matching api-java/src/main/resources/application.yml.
+# Volumes persist across `docker compose down`; use `docker compose down -v` to nuke and start fresh.
+#
+# Production never uses this file. Production uses AWS RDS provisioned by infra-cdk.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tempo-postgres
+    environment:
+      POSTGRES_DB: tempo
+      POSTGRES_USER: tempo
+      POSTGRES_PASSWORD: tempo_local_only
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tempo -d tempo"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Optional: pgAdmin for visual DB browsing.
+  # Uncomment if you want it. Default credentials below; do not use in any non-local context.
+  #
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   container_name: tempo-pgadmin
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: dev@localhost
+  #     PGADMIN_DEFAULT_PASSWORD: localonly
+  #   ports:
+  #     - "5050:80"
+  #   depends_on:
+  #     - postgres
+
+volumes:
+  postgres-data:

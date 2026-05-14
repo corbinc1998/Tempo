@@ -1,0 +1,69 @@
+# MISC Files
+
+ARCHITECTURE.md
+ROADMAP.md
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties.original
+
+# IntelliJ / Eclipse
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.factorypath
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+.yarn/cache
+.yarn/install-state.gz
+
+# Vite / React build output
+dist/
+build/
+.vite/
+
+# AWS CDK
+cdk.out/
+cdk.context.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+*.swp
+
+# Env files - never commit these
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Logs
+*.log
+logs/
+
+# Test output
+coverage/
+.nyc_output/
+*.lcov
+jacoco.exec
+
+

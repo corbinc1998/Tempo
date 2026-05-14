@@ -1,0 +1,105 @@
+name: CI
+
+# Runs on every push and PR. Path filters mean changes to one layer don't
+# rebuild the others - faster feedback and less compute usage.
+#
+# Deployment workflows (push to ECR, deploy to ECS, sync to S3) are separate
+# files. This one only verifies the build is good.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      bff: ${{ steps.filter.outputs.bff }}
+      web: ${{ steps.filter.outputs.web }}
+      cdk: ${{ steps.filter.outputs.cdk }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'api-java/**'
+            bff:
+              - 'bff-node/**'
+            web:
+              - 'web-react/**'
+            cdk:
+              - 'infra-cdk/**'
+
+  build-api:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api-java
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+      - name: Build and test
+        run: mvn -B clean verify
+
+  build-bff:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.bff == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bff-node
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: bff-node/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+  build-web:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-react
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web-react/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  build-cdk:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.cdk == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra-cdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: infra-cdk/package-lock.json
+      - run: npm ci
+      - run: npm run synth
