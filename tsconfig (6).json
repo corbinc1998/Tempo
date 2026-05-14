@@ -1,0 +1,91 @@
+# Default profile - used when no profile is active.
+# Targets the local docker-compose Postgres.
+#
+# In production this file is mostly overridden by application-prod.yml
+# plus environment variables sourced from AWS Secrets Manager.
+
+spring:
+  application:
+    name: tempo-api
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tempo
+    username: tempo
+    password: tempo_local_only
+    hikari:
+      # Connection pool sizing matters more than people realize.
+      # Default is 10; tune based on RDS instance class and number of Fargate tasks.
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    # NEVER use update or create in production. Migrations live in db/migration.
+    # 'validate' makes Hibernate verify the schema matches your entities at startup
+    # and fail fast if they don't.
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        # Show formatted SQL in logs in dev; turn off in prod.
+        format_sql: true
+        # Defer datasource init so Flyway runs first.
+        jdbc:
+          time_zone: UTC
+    open-in-view: false  # Always false. Open-in-view causes lazy loading after the
+                         # transaction is closed - subtle bugs that only show in prod.
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Validate that applied migrations haven't been tampered with.
+    validate-on-migrate: true
+
+  # Security - configured via SecurityConfig.java, this just sets defaults.
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # In real deployments this comes from env: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
+          # For local dev, use a static test issuer or disable JWT entirely.
+          issuer-uri: http://localhost:8080/dev-issuer
+
+server:
+  port: 8080
+  # Don't reveal the server name/version in error responses.
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: never
+    include-exception: false
+
+# Actuator - health and metrics endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        # In production expose only what's needed. /health is for the ALB.
+        # /metrics and /prometheus are for monitoring.
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+
+# Custom application settings - referenced from @Value or @ConfigurationProperties
+tempo:
+  ingest:
+    # The Python predictor sends this header. Required for POST /api/v1/ingest.
+    # Override per-environment: SIM_LEAGUE_INGEST_API_KEY=<secret>
+    api-key: ${SIM_LEAGUE_INGEST_API_KEY:local-dev-key-do-not-use-in-prod}
+
+logging:
+  level:
+    root: INFO
+    dev.tempo: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG  # Set to WARN in prod
